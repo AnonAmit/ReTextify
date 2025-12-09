@@ -27,7 +27,7 @@ export const TextOverlay: React.FC<Props> = ({ region, scale, isSelected, onSele
                 color: region.color || 'black',
 
                 // Interaction
-                border: isSelected ? '2px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.3)',
+                border: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(0,0,0,0.1)', // Subtle hint
                 backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                 cursor: 'pointer',
 
