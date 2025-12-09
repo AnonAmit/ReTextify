@@ -72,26 +72,29 @@ export const EditorCanvas: React.FC<Props> = ({ file, initialRegions, onRegionsC
             return;
         }
 
+        // 3. Update the text locally FIRST for instant feedback
+        // We do this optimistically
+        const newRegions = [...regions];
+        newRegions[regionIndex] = { ...region, text: inputText };
+        setRegions(newRegions);
+        onRegionsChange?.(newRegions);
+
+        // If we are masking the background, WE DO NOT NEED TO INPAINT!
+        // The solid color rect will cover the old text. Inpainting just adds blur.
+        if (region.maskBackground) {
+            setEditingId(null);
+            return;
+        }
+
         setIsProcessing(true);
         try {
-            // 1. Inpaint the background (server returns new image string/blob URL)
-            // Note: For MVP, 'inpaintRegion' returns a Blob URL of the *processed region* or *full image*?
-            // My API implementation returns the full image processed.
-            // This means we essentially replace the base image with the inpainted one!
+            // 1. Inpaint the background only if NOT masking
             const newImageUrl = await inpaintRegion(file, region);
-
-            // 2. Update the base image
             setImageSrc(newImageUrl);
-
-            // 3. Update the text in our region state
-            const newRegions = [...regions];
-            newRegions[regionIndex] = { ...region, text: inputText };
-            setRegions(newRegions);
-            onRegionsChange?.(newRegions);
 
         } catch (error) {
             console.error("Inpainting failed:", error);
-            alert("Failed to update text using AI.");
+            // Don't alert, just keep the text change
         } finally {
             setIsProcessing(false);
             setEditingId(null);
@@ -232,7 +235,10 @@ export const EditorCanvas: React.FC<Props> = ({ file, initialRegions, onRegionsC
                                     top: Math.max(10, topPos),
                                     left: Math.max(10, leftPos)
                                 }}
-                                onMouseDown={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }}
                             >
                                 <select
                                     className="bg-slate-700 border-none text-xs rounded px-2 py-1 outline-none cursor-pointer hover:bg-slate-600 transition-colors"
